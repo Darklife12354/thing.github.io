@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cat or Dog Detector</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+ 
+      h1 {
+        text-align: center;
+        margin-top: 50px;
+      }
+ 
+      #fileInput {
+        display: block;
+        margin: 0 auto;
+        margin-top: 30px;
+      }
+ 
+      #uploadButton {
+        display: block;
+        margin: 0 auto;
+        margin-top: 10px;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+ 
+      #result {
+        text-align: center;
+        margin-top: 50px;
+        font-size: 24px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Cat or Dog Detector</h1>
+    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png" />
+    <button id="uploadButton">Upload Image</button>
+    <div id="result"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+    <script>
+      const uploadButton = document.getElementById("uploadButton");
+      const fileInput = document.getElementById("fileInput");
+      const resultDiv = document.getElementById("result");
+ 
+      // Load the TensorFlow.js model from TensorFlow Hub
+      tf.loadGraphModel("https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/4").then((model) => {
+        // Listen for clicks on the upload button
+        uploadButton.addEventListener("click", () => {
+          // Get the uploaded file
+          const file = fileInput.files[0];
+ 
+          // Load the file as an image
+          const img = new Image();
+          const reader = new FileReader();
+          reader.onload = () => {
+            img.src = reader.result;
+ 
+            // Once the image has loaded, resize it to 224x224 and convert it to a tensor
+            img.onload = () => {
+              const tensor = tf.browser.fromPixels(img).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+ 
+              // Normalize the pixel values to be between -1 and 1
+              const offset = tf.scalar(127.5);
+              const normalized = tensor.sub(offset).div(offset);
+ 
+              // Use the model to predict if the image contains a cat or a dog
+              model.predict(normalized).data().then((predictions) => {
+                const isDog = predictions[0] > predictions[1];
+ 
+                // Show the result on the page
+                resultDiv.innerHTML = isDog ? "It's a dog!" : "It's a cat!";
+              });
+            };
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    </script>
+  </body>
+</html>
